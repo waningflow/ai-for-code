@@ -46,12 +46,15 @@ const sendChatAndGetMessages = async (data) => {
     const response = await sendChatRequest(data);
     const conversation_id = response.conversation_id;
     const chat_id = response.id;
-    // 轮询检索消息记录，直到状态为 completed
+    // 轮询检索消息记录，直到状态为 completed 或 failed
     let status = '';
-    while (status!== 'completed') {
+    while (status!== 'completed' && status!== 'failed') {
       const response = await retrieveChat(conversation_id, chat_id);
       status = response.status;
       await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    if (status === 'failed') {
+      throw new Error('Chat request failed');
     }
     // 获取消息列表
     const messageList = await getMessageList(conversation_id, chat_id);

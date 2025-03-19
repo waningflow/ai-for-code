@@ -5,13 +5,16 @@ import './App.css'
 import axios from 'axios';
 import { Card } from 'antd';
 import { getMessageList, sendChatAndGetMessages } from './utils/api';
+import { Spin } from 'antd';
 
 function App() {
   const [themes, setThemes] = useState([]);
   const [selectedTheme, setSelectedTheme] = useState(null);
   const [story, setStory] = useState(null);
 
+  const [isLoading, setIsLoading] = useState(false);
   const fetchThemes = async () => {
+    setIsLoading(true);
     try {
       const res = await sendChatAndGetMessages({
         bot_id: '7482756583320666146',
@@ -37,6 +40,7 @@ function App() {
     } catch (error) {
       console.error('Error fetching themes:', error);
     }
+    setIsLoading(false);
   };
 
   const fetchStory = async (theme) => {
@@ -62,46 +66,48 @@ function App() {
 
   return (
     <>
-      <div>
-        <h1>小说的诞生</h1>
-        {!selectedTheme && (
-          <div>
-            <h2>选择小说主题</h2>
-            {themes.map((theme) => (
-              <Card
-                key={theme.id}
-                style={{ marginBottom: 16 }}
-                onClick={() => setSelectedTheme(theme)}
-              >
-                <p style={{ fontSize: 16, fontWeight: 'bold' }}>{theme.name}</p>
-              </Card>
-            ))}
-            <button onClick={fetchThemes}>刷新主题</button>
-          </div>
-        )}
-        {selectedTheme && (
-          <div>
-            <h2>你选择的主题是: {selectedTheme.name}</h2>
-            <button onClick={() => setSelectedTheme(null)}>重新选择</button>
-            <button onClick={() => fetchStory(selectedTheme.id)}>开始故事</button>
-          </div>
-        )}
-        {story && (
-          <div>
-            <h2>故事内容</h2>
-            <p>{story.text}</p>
-            <img src={story.image} alt="故事图片" />
-            <h3>后续发展</h3>
-            <ul>
-              {story.options.map((option) => (
-                <li key={option.id} onClick={() => fetchStory(option.nextTheme)}>
-                  {option.text}
-                </li>
+      <Spin spinning={isLoading} tip="加载中..." >
+        <div style={{width: '100%', height: '100%'}}>
+          <h1>小说的诞生</h1>
+          {!selectedTheme && (
+            <div>
+              <h2>选择小说主题</h2>
+              {themes.map((theme) => (
+                <Card
+                  key={theme.id}
+                  style={{ marginBottom: 16 }}
+                  onClick={() => setSelectedTheme(theme)}
+                >
+                  <p style={{ fontSize: 16, fontWeight: 'bold' }}>{theme.name}</p>
+                </Card>
               ))}
-            </ul>
-          </div>
-        )}
-      </div>
+              <button onClick={fetchThemes}>刷新主题</button>
+            </div>
+          )}
+          {selectedTheme && (
+            <div>
+              <h2>你选择的主题是: {selectedTheme.name}</h2>
+              <button onClick={() => setSelectedTheme(null)}>重新选择</button>
+              <button onClick={() => fetchStory(selectedTheme.id)}>开始故事</button>
+            </div>
+          )}
+          {story && (
+            <div>
+              <h2>故事内容</h2>
+              <p>{story.text}</p>
+              <img src={story.image} alt="故事图片" />
+              <h3>后续发展</h3>
+              <ul>
+                {story.options.map((option) => (
+                  <li key={option.id} onClick={() => fetchStory(option.nextTheme)}>
+                    {option.text}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </Spin>
     </>
   );
 }
