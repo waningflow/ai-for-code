@@ -10,9 +10,10 @@ import { Spin } from 'antd';
 function App() {
   const [themes, setThemes] = useState([]);
   const [selectedTheme, setSelectedTheme] = useState(null);
-  const [story, setStory] = useState(null);
+  const [storyList, setStoryList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
 
   const fetchThemes = async () => {
     setIsLoading(true);
@@ -48,25 +49,46 @@ function App() {
     setIsLoading(false);
   };
 
-  const fetchStory = async (theme) => {
+  const fetchStory = async (prompt) => {
     try {
-      const mockStory = {
-        text: '这是一个模拟的故事内容。',
-        image: 'https://example.com/mock-image.jpg',
-        options: [
-          { id: 1, text: '选项1', nextTheme: 2 },
-          { id: 2, text: '选项2', nextTheme: 1 },
-          // 可以添加更多模拟选项
+      const res = await sendChatAndGetMessages({
+        bot_id: '7483919423419056154',
+        user_id: userId + retryCount.toString(),
+        additional_messages: [
+          {
+            role: 'user',
+            content: `请续写故事: ${prompt}`,
+            content_type: 'text'
+          }
         ]
-      };
-      setStory(mockStory);
+      });
+      const answerData = res.find(item => item.type === 'answer');
+      if (answerData) {
+        const content = answerData.content;
+        const storyRegex = /“([^”]+)”/;
+        const choiceRegex = /选择一：([^\n]+)\n选择二：([^\n]+)/;
+        const storyMatch = content.match(storyRegex);
+        const choiceMatch = content.match(choiceRegex);
+        const storyText = storyMatch ? storyMatch[1] : '';
+        const option1 = choiceMatch ? choiceMatch[1] : '';
+        const option2 = choiceMatch ? choiceMatch[2] : '';
+        const story = {
+          text: storyText,
+          image: await fetchImage(storyText, '「4:3」'),
+          options: [
+            { id: 1, text: option1, nextTheme: null },
+            { id: 2, text: option2, nextTheme: null }
+          ]
+        };
+        setStoryList([...storyList, story]);
+      }
     } catch (error) {
       console.error('Error fetching story:', error);
     }
   };
 
   // 根据大模型获取图片
-  const fetchImage = async (prompt) => {
+  const fetchImage = async (prompt, ratio = '「2:3」') => {
     try {
       const res = await sendChatAndGetMessages({
         bot_id: '7483550781116104704',
@@ -74,7 +96,7 @@ function App() {
         additional_messages: [
           {
             role: 'user',
-            content: `根据以下提示生成一张图片，图片风格为「黑白动漫」，比例 「2:3」：${prompt}`,
+            content: `根据以下提示生成一张图片，图片风格为「黑白动漫」，比例 ${ratio}：${prompt}`,
             content_type: 'text'
           }
         ]
@@ -101,12 +123,17 @@ function App() {
     fetchThemes();
   }, [userId]);
 
+  useEffect(() => {
+    if (!selectedTheme) return;
+    fetchStory(selectedTheme.name);
+  }, [selectedTheme, retryCount]);
+
   return (
     <>
       <Spin spinning={isLoading} tip="加载中..." >
         <div style={{ width: '100%', height: '100%' }}>
           <h1>“短漫”的诞生</h1>
-          {themes?.length > 0 && <Space style={{ marginBottom: '1rem' }}>选择漫画主题 <button style={{ fontSize: '12px', padding: '4px 8px' }} onClick={fetchThemes}>换一批</button></Space>}
+          {themes?.length > 0 && !selectedTheme && <Space style={{ marginBottom: '1rem' }}>选择漫画主题，开启你的专属“短漫” <button style={{ fontSize: '12px', padding: '4px 8px' }} onClick={fetchThemes}>换一批</button></Space>}
           {!selectedTheme && (
             <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between' }}>
@@ -124,24 +151,29 @@ function App() {
           )}
           {selectedTheme && (
             <div>
-              <h2>你选择的主题是: {selectedTheme.name}</h2>
-              <button onClick={() => setSelectedTheme(null)}>重新选择</button>
-              <button onClick={() => fetchStory(selectedTheme.id)}>开始故事</button>
+              <Space style={{ marginBottom: '1rem' }}>
+                {selectedTheme.name}
+                <button style={{ fontSize: '12px', padding: '4px 8px' }} onClick={() => {
+                  setStoryList([]);
+                  setRetryCount(retryCount + 1);
+                }}>点此重生</button></Space>
             </div>
           )}
-          {story && (
+          {storyList?.length > 0 && (
             <div>
-              <h2>故事内容</h2>
-              <p>{story.text}</p>
-              <img src={story.image} alt="故事图片" />
-              <h3>后续发展</h3>
-              <ul>
-                {story.options.map((option) => (
-                  <li key={option.id} onClick={() => fetchStory(option.nextTheme)}>
-                    {option.text}
-                  </li>
-                ))}
-              </ul>
+              {storyList.map((story, index) => {
+                return (
+                  <div key={index}>
+                    <p>{story.text}</p>
+                    <Image src={story.image} width={300} />
+                    <Space style={{ marginBottom: '1rem' }}>
+                      {story.options.map((option) => (
+                        <Button key={option.id} onClick={() => fetchStory(option.text)}>{option.text}</Button>
+                      ))}
+                    </Space>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
