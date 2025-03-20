@@ -3,7 +3,7 @@ import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 import axios from 'axios';
-import { Card, Image } from 'antd';
+import { Button, Card, Image, Space } from 'antd';
 import { getMessageList, sendChatAndGetMessages } from './utils/api';
 import { Spin } from 'antd';
 
@@ -106,22 +106,20 @@ function App() {
       <Spin spinning={isLoading} tip="加载中..." >
         <div style={{ width: '100%', height: '100%' }}>
           <h1>“短漫”的诞生</h1>
+          {themes?.length > 0 && <Space style={{ marginBottom: '1rem' }}>选择漫画主题 <button style={{ fontSize: '12px', padding: '4px 8px' }} onClick={fetchThemes}>换一批</button></Space>}
           {!selectedTheme && (
-            <div>
-              <h2>选择小说主题</h2>
-              {themes.map((theme) => (
-                <Card
-                  key={theme.id}
-                  style={{ marginBottom: 16 }}
-                  onClick={() => setSelectedTheme(theme)}
-                >
-                  <p style={{ fontSize: 16, fontWeight: 'bold' }}>{theme.name}</p>
-                  <Image
-                    width={200}
-                    src={theme.image} />
-                </Card>
-              ))}
-              <button onClick={fetchThemes}>刷新主题</button>
+            <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                {themes.map((theme) => (
+                  <div
+                    key={theme.id}
+                    style={{ width: 'calc(33.33% - 16px)', aspectRatio: '2 / 3', backgroundImage: `url(${theme.image})`, backgroundSize: 'cover', backgroundPosition: 'center', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
+                    onClick={() => setSelectedTheme(theme)}
+                  >
+                    <p style={{ fontSize: 16, fontWeight: 'bold', color: 'white', backgroundColor: 'rgba(0, 0, 0, 0.5)', padding: 8 }}>{theme.name}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
           {selectedTheme && (
