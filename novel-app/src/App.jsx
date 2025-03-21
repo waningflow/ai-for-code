@@ -25,7 +25,7 @@ function App() {
         additional_messages: [
           {
             role: 'user',
-            content: '随机生成1种不同的热门小说主题，分别用一段简短的文字介绍',
+            content: '随机生成3种不同的热门小说主题，分别用一段简短的文字介绍',
             content_type: 'text',
           },
         ],
@@ -68,7 +68,6 @@ function App() {
         ],
       });
       const answerData = res.find((item) => item.type === 'answer');
-      // const answerData = "我得到神秘传承后，人生就像开了挂。在商场上，那些曾经对我不屑一顾的对手，如今都被我打得节节败退。前几天，我又拿下了一个大项目，这让公司的规模瞬间扩大不少。在江湖里，也有不少人开始对我慕名而来，想要追随我。\n\n今天，我刚从公司出来，就感觉有人在跟踪我。我不动声色，继续向前走着。很快，一群人将我围住。为首的人恶狠狠地说我坏了他们的好事。我嘴角上扬，毫无惧色。此刻，摆在我面前有两个选择：\n选择一：直接动手，将这群人打得落花流水。这样一来，肯定会树立更多敌人，但能迅速立威。\n选择二：跟他们谈判，看看能否化解矛盾。也许能化干戈为玉帛，拓展人脉。  "
       if (answerData) {
         const content = answerData.content;
         const storyRegex = /([\s\S]*?。)[^。]*选择一/;
@@ -135,6 +134,15 @@ function App() {
     handleSelectTheme(selectedTheme);
   }, [selectedTheme, retryCount]);
 
+  // storyList 变化时，自动滚动到底部
+  useEffect(() => {
+    console.log('storyList changed, ', storyList);
+    const storyListContainer = document.getElementById('storyListContainer');
+    if (storyListContainer) {
+      storyListContainer.scrollTop = storyListContainer.scrollHeight;
+    }
+  }, [storyList]);
+
   const handleSelectTheme = async (theme) => {
     setStoryList([]);
     setRetryCount(0);
@@ -154,7 +162,20 @@ function App() {
     storyList[storyIndex].selectedOption = option;
     setStoryList([...storyList]);
     try {
-      const res = await fetchStory();
+      const res = await fetchStory(option.text);
+    } catch (error) {
+      console.error('Error fetching story:', error);
+    } finally {
+      setIsFetchingStory(false);
+    }
+  };
+
+  const handleRefetchStory = async (storyIndex) => {
+    setIsFetchingStory(true);
+    storyList.splice(storyIndex, 1);
+    setStoryList([...storyList]);
+    try {
+      const res = await fetchStory(storyList[storyIndex - 1].text);
     } catch (error) {
       console.error('Error fetching story:', error);
     } finally {
@@ -164,123 +185,130 @@ function App() {
 
   return (
     <>
-      <Spin spinning={isLoading} tip="疯狂写稿中...">
-        <div style={{ width: '100%', height: '100%' }}>
-          <h1>“短漫”的诞生</h1>
-          {themes?.length > 0 && !selectedTheme && (
-            <Space style={{ marginBottom: '1rem' }}>
-              选择漫画主题，开启你的专属“短漫”{' '}
-              <button
-                style={{ fontSize: '12px', padding: '4px 8px' }}
-                onClick={fetchThemes}
-              >
-                换一批
-              </button>
-            </Space>
-          )}
-          {!selectedTheme && (
-            <div
-              style={{
-                width: '100%',
-                display: 'flex',
-                justifyContent: 'space-between',
-              }}
+
+      <div style={{ width: '100%', height: '100%' }} id="storyListContainer">
+        <h1>“短漫”的诞生</h1>
+        {themes?.length > 0 && !selectedTheme && (
+          <Space style={{ marginBottom: '1rem' }}>
+            选择漫画主题，开启你的专属“短漫”{' '}
+            <button
+              style={{ fontSize: '12px', padding: '4px 8px' }}
+              onClick={fetchThemes}
             >
+              换一批
+            </button>
+          </Space>
+        )}
+        {!selectedTheme && (
+          <div
+            style={{
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'space-between',
+            }}
+          >
+            {themes.map((theme) => (
               <div
+                key={theme.id}
                 style={{
+                  width: 'calc(33.33% - 16px)',
+                  height: 'auto',
+                  aspectRatio: '2 / 3',
+                  backgroundImage: `url(${theme.image})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  cursor: 'pointer',
                   display: 'flex',
-                  flexWrap: 'wrap',
-                  justifyContent: 'space-between',
+                  flexDirection: 'column',
+                  justifyContent: 'flex-end',
                 }}
+                onClick={() => setSelectedTheme(theme)}
               >
-                {themes.map((theme) => (
-                  <div
-                    key={theme.id}
-                    style={{
-                      width: 'calc(33.33% - 16px)',
-                      aspectRatio: '2 / 3',
-                      backgroundImage: `url(${theme.image})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'flex-end',
-                    }}
-                    onClick={() => setSelectedTheme(theme)}
-                  >
-                    <p
-                      style={{
-                        fontSize: 16,
-                        fontWeight: 'bold',
-                        color: 'white',
-                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                        padding: 8,
-                      }}
-                    >
-                      {theme.name}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {selectedTheme && (
-            <div>
-              <Space style={{ marginBottom: '1rem' }}>
-                {selectedTheme.name}
-                <button
-                  style={{ fontSize: '12px', padding: '4px 8px' }}
-                  onClick={() => {
-                    setStoryList([]);
-                    setRetryCount(retryCount + 1);
+                <p
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 'bold',
+                    color: 'white',
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    padding: 8,
                   }}
                 >
-                  点此重生
-                </button>
-              </Space>
-            </div>
-          )}
-          {storyList?.length > 0 && (
-            <div>
-              {storyList.map((story, storyIndex) => {
-                return (
-                  <div key={storyIndex}>
-                    <Space style={{ alignItems: 'start' }}>
-                      <Image src={story.image} width={600} />
-                      <Space
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'start',
-                          width: '600px',
-                        }}
-                      >
-                        <p style={{ textAlign: 'left', fontWeight: 600 }}>
-                          第{storyIndex + 1}章:
-                        </p>
-                        <p style={{ textAlign: 'left', fontSize: '16px' }}>
-                          {story.text}
-                        </p>
-                        {story.options.map((option, optionIndex) => (
-                          <button
-                            style={{ maxWidth: '600px', fontSize: '14px' }}
-                            key={option.id}
-                            onClick={() =>
-                              handleClickChoice(option, storyIndex)
-                            }
-                          >
-                            选择{optionIndex === 0 ? '一' : '二'}：{option.text}
-                          </button>
-                        ))}
+                  {theme.name}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+        {selectedTheme && (
+          <div>
+            <Space style={{ marginBottom: '1rem' }}>
+              {selectedTheme.name}
+              <button
+                style={{ fontSize: '12px', padding: '4px 8px' }}
+                onClick={() => {
+                  setStoryList([]);
+                  setRetryCount(retryCount + 1);
+                }}
+              >
+                点此重生
+              </button>
+            </Space>
+          </div>
+        )}
+        {storyList?.length > 0 && (
+          <Space style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: '10px', width: "100%" }} >
+            {storyList.map((story, storyIndex) => {
+              if (storyIndex >= 1 && (!story.text || !story.image || !story.options.length)) {
+                return <button style={{ fontSize: '12px', padding: '4px 8px', display: 'block', margin: '0 auto' }} onClick={() => handleRefetchStory(storyIndex)}>重试</button>
+              }
+              return (
+                <div key={storyIndex}>
+                  <Space style={{ alignItems: 'start' }}>
+                    <Image src={story.image} width={600} preview={false}/>
+                    <Space
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'start',
+                        flex: 1,
+                        minWidth: '500px'
+                      }}
+                    >
+
+                      <Space><p style={{ textAlign: 'left', fontWeight: 600 }}>
+                        第{storyIndex + 1}章:
+                      </p>
                       </Space>
+                      <p style={{ textAlign: 'left', fontSize: '16px' }}>
+                        {story.text}
+                      </p>
+                      {story.options.map((option, optionIndex) => (
+                        <button
+                          style={{ maxWidth: '600px', fontSize: '14px' }}
+                          className={story.selectedOption && story.selectedOption.id === option.id ? 'selected' : storyList[storyIndex].selectedOption ? 'disabled' : ''}
+                          key={option.id}
+                          onClick={() =>
+                            handleClickChoice(option, storyIndex)
+                          }
+                        >
+                          选择{optionIndex === 0 ? '一' : '二'}：{option.text}
+                        </button>
+                      ))}
                     </Space>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                  </Space>
+                </div>
+              );
+            })}
+          </Space>
+        )}
+      </div>
+      <Spin spinning={isLoading || isFetchingStory} tip="疯狂画稿中...">
+        <div style={{
+          width: '100%',
+          height: '100px',
+          borderRadius: '10px',
+          marginTop: '20px'
+        }}></div>
       </Spin>
     </>
   );
