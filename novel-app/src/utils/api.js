@@ -3,8 +3,9 @@ import axios from 'axios';
 // 提取基础配置
 const baseConfig = {
   headers: {
-    'Authorization': 'Bearer pat_mlbScGjq1V4NYLgxxtoHU1lSYeZ1H73axIRSNazDKVPYchkXNqt3ZmptaNInHaYP'
-  }
+    Authorization:
+      'Bearer pat_mlbScGjq1V4NYLgxxtoHU1lSYeZ1H73axIRSNazDKVPYchkXNqt3ZmptaNInHaYP',
+  },
 };
 
 // 提取请求函数
@@ -21,7 +22,10 @@ const makeRequest = async (url, method, params = {}, data = {}) => {
 // 获取消息列表
 const getMessageList = async (conversation_id, chat_id) => {
   const baseURL = 'https://api.coze.cn/v3/chat/message/list';
-  const response = await makeRequest(baseURL, 'get', { conversation_id, chat_id });
+  const response = await makeRequest(baseURL, 'get', {
+    conversation_id,
+    chat_id,
+  });
   return response.data;
 };
 
@@ -48,10 +52,10 @@ const sendChatAndGetMessages = async (data) => {
     const chat_id = response.id;
     // 轮询检索消息记录，直到状态为 completed 或 failed
     let status = '';
-    while (status!== 'completed' && status!== 'failed') {
+    while (status !== 'completed' && status !== 'failed') {
       const response = await retrieveChat(conversation_id, chat_id);
       status = response.status;
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
     if (status === 'failed') {
       throw new Error('Chat request failed');
@@ -65,4 +69,9 @@ const sendChatAndGetMessages = async (data) => {
   }
 };
 
-export { getMessageList, sendChatRequest, retrieveChat, sendChatAndGetMessages };
+export {
+  getMessageList,
+  sendChatRequest,
+  retrieveChat,
+  sendChatAndGetMessages,
+};
