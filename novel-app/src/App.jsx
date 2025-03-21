@@ -14,6 +14,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState('');
   const [retryCount, setRetryCount] = useState(0);
+  const [isFetchingStory, setIsFetchingStory] = useState(false);
 
   const fetchThemes = async () => {
     setIsLoading(true);
@@ -24,7 +25,7 @@ function App() {
         additional_messages: [
           {
             role: 'user',
-            content: '随机生成3种不同的热门小说主题，分别用一段简短的文字介绍',
+            content: '随机生成1种不同的热门小说主题，分别用一段简短的文字介绍',
             content_type: 'text'
           }
         ]
@@ -63,13 +64,14 @@ function App() {
         ]
       });
       const answerData = res.find(item => item.type === 'answer');
+      // const answerData = "我得到神秘传承后，人生就像开了挂。在商场上，那些曾经对我不屑一顾的对手，如今都被我打得节节败退。前几天，我又拿下了一个大项目，这让公司的规模瞬间扩大不少。在江湖里，也有不少人开始对我慕名而来，想要追随我。\n\n今天，我刚从公司出来，就感觉有人在跟踪我。我不动声色，继续向前走着。很快，一群人将我围住。为首的人恶狠狠地说我坏了他们的好事。我嘴角上扬，毫无惧色。此刻，摆在我面前有两个选择：\n选择一：直接动手，将这群人打得落花流水。这样一来，肯定会树立更多敌人，但能迅速立威。\n选择二：跟他们谈判，看看能否化解矛盾。也许能化干戈为玉帛，拓展人脉。  "
       if (answerData) {
         const content = answerData.content;
-        const storyRegex = /“([^”]+)”/;
+        const storyRegex = /([\s\S]*?。)[^。]*选择一/;
         const choiceRegex = /选择一：([^\n]+)\n选择二：([^\n]+)/;
         const storyMatch = content.match(storyRegex);
         const choiceMatch = content.match(choiceRegex);
-        const storyText = storyMatch ? storyMatch[1] : '';
+        const storyText = storyMatch ? storyMatch[1].trim() : '';
         const option1 = choiceMatch ? choiceMatch[1] : '';
         const option2 = choiceMatch ? choiceMatch[2] : '';
         const story = {
@@ -105,6 +107,7 @@ function App() {
       if (answerData) {
         const urlRegex = /(https?:\/\/[\w\d\._\-\/\?&=]+)/g;
         const match = answerData.content.match(urlRegex);
+        console.log(match)
         if (match) {
           return match[0];
         }
@@ -125,12 +128,39 @@ function App() {
 
   useEffect(() => {
     if (!selectedTheme) return;
-    fetchStory(selectedTheme.name);
+    handleSelectTheme(selectedTheme);
   }, [selectedTheme, retryCount]);
+
+  const handleSelectTheme = async (theme) => {
+    setStoryList([]);
+    setRetryCount(0)
+    setIsFetchingStory(true);
+    try {
+      await fetchStory(selectedTheme.name);
+    } catch (error) {
+      console.error('Error fetching story based on selected theme:', error);
+      // 可以在这里添加更多的错误处理逻辑，比如显示错误提示给用户
+    } finally {
+      setIsFetchingStory(false);
+    }
+  }
+
+  const handleClickChoice = async (option, storyIndex) => {
+    setIsFetchingStory(true);
+    storyList[storyIndex].selectedOption = option;
+    setStoryList([...storyList]);
+    try {
+      const res = await fetchStory();
+    } catch (error) {
+      console.error('Error fetching story:', error);
+    } finally {
+      setIsFetchingStory(false);
+    }
+  }
 
   return (
     <>
-      <Spin spinning={isLoading} tip="加载中..." >
+      <Spin spinning={isLoading} tip="疯狂写稿中..." >
         <div style={{ width: '100%', height: '100%' }}>
           <h1>“短漫”的诞生</h1>
           {themes?.length > 0 && !selectedTheme && <Space style={{ marginBottom: '1rem' }}>选择漫画主题，开启你的专属“短漫” <button style={{ fontSize: '12px', padding: '4px 8px' }} onClick={fetchThemes}>换一批</button></Space>}
@@ -161,16 +191,18 @@ function App() {
           )}
           {storyList?.length > 0 && (
             <div>
-              {storyList.map((story, index) => {
+              {storyList.map((story, storyIndex) => {
                 return (
-                  <div key={index}>
-                    <p>{story.text}</p>
-                    <Image src={story.image} width={300} />
-                    <Space style={{ marginBottom: '1rem' }}>
-                      {story.options.map((option) => (
-                        <Button key={option.id} onClick={() => fetchStory(option.text)}>{option.text}</Button>
-                      ))}
-                    </Space>
+                  <div key={storyIndex}>
+                    <Space style={{ alignItems: 'start' }}>
+                      <Image src={story.image} width={600} />
+                      <Space style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', width: '600px' }} >
+                        <p style={{ textAlign: 'left', fontWeight: 600 }}>第{storyIndex + 1}章:</p>
+                        <p style={{ textAlign: 'left', fontSize: '16px' }}>{story.text}</p>
+                        {story.options.map((option, optionIndex) => (
+                          <button style={{ maxWidth: '600px', fontSize: '14px' }} key={option.id} onClick={() => handleClickChoice(option, storyIndex)}>选择{optionIndex === 0 ? '一' : '二'}：{option.text}</button>
+                        ))}
+                      </Space></Space>
                   </div>
                 )
               })}
