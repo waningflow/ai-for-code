@@ -16,6 +16,11 @@ function App() {
   const [retryCount, setRetryCount] = useState(0);
   const [isFetchingStory, setIsFetchingStory] = useState(false);
 
+  const getCoverImagePrompt = (roleInfo, storyTitle, storyText, ratio) => {
+    const prompt = `根据以下提示生成一张漫画封面，风格为「黑白动漫」，比例 ${ratio}。漫画标题"${storyTitle}"。人物背景介绍：${roleInfo.name}, ${roleInfo.identity}, ${roleInfo.appearance}。故事介绍：${storyText}`;
+    return prompt;
+  };
+
   const fetchThemes = async () => {
     setIsLoading(true);
     try {
@@ -25,24 +30,33 @@ function App() {
         additional_messages: [
           {
             role: 'user',
-            content: '随机生成3种不同的热门小说主题，分别用一段简短的文字介绍',
+            content: '随机生成3种不同的小说概要，主题风格包括玄幻、科幻、武侠、爱情、校园、职场、悬疑、穿越等，分别起一个小说名（标题中不要包含主题的字眼），用一段简短的文字介绍故事内容（用第二人称表达），并对主角（只能有一人）的姓名、身份、样貌和形象进行介绍。输出成如下的json格式：[{\"title\":\"\",\"description\":\"\",\"protagonist\":{\"name\":\"\",\"identity\":\"\",\"appearance\":\"\",\"image\":\"\"}}]，不要包含其他内容。',
             content_type: 'text',
           },
         ],
       });
       const answerData = res.find((item) => item.type === 'answer');
       if (answerData) {
-        const themesContent = answerData.content;
-        const themeLines = themesContent
-          .split('\n')
-          .filter((line) => line.includes('主题'));
+        const themesContent = JSON.parse(answerData.content);
+        console.log(themesContent);
         const themes = await Promise.all(
-          themeLines.map(async (line, index) => {
-            const topic = line.replace(`- 主题 ${index + 1}：`, '').trim();
+          themesContent.map(async (theme) => {
+            const imagePrompte = getCoverImagePrompt(
+              theme.protagonist,
+              theme.title,
+              theme.description,
+              '「2:3」'
+            );
+            const image = await fetchImage(imagePrompte);
             return {
-              id: index + 1,
-              name: topic,
-              image: await fetchImage(topic),
+              title: theme.title,
+              description: theme.description,
+              protagonist: {
+                name: theme.protagonist.name,
+                identity: theme.protagonist.identity,
+                appearance: theme.protagonist.appearance,
+              },
+              image: image,
             };
           })
         );
@@ -93,7 +107,7 @@ function App() {
   };
 
   // 根据大模型获取图片
-  const fetchImage = async (prompt, ratio = '「2:3」') => {
+  const fetchImage = async (prompt) => {
     try {
       const res = await sendChatAndGetMessages({
         bot_id: '7483550781116104704',
@@ -101,7 +115,7 @@ function App() {
         additional_messages: [
           {
             role: 'user',
-            content: `根据以下提示生成一张图片，图片风格为「黑白动漫」，比例 ${ratio}：${prompt}`,
+            content: prompt,
             content_type: 'text',
           },
         ],
@@ -210,6 +224,7 @@ function App() {
             {themes.map((theme) => (
               <div
                 key={theme.id}
+                className="theme-card"
                 style={{
                   width: 'calc(33.33% - 16px)',
                   height: 'auto',
@@ -231,9 +246,10 @@ function App() {
                     color: 'white',
                     backgroundColor: 'rgba(0, 0, 0, 0.5)',
                     padding: 8,
+                    textAlign: 'left'
                   }}
                 >
-                  {theme.name}
+                  {theme.description}
                 </p>
               </div>
             ))}
@@ -264,7 +280,7 @@ function App() {
               return (
                 <div key={storyIndex}>
                   <Space style={{ alignItems: 'start' }}>
-                    <Image src={story.image} width={600} preview={false}/>
+                    <Image src={story.image} width={600} preview={false} />
                     <Space
                       style={{
                         display: 'flex',

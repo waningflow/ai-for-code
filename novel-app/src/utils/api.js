@@ -55,7 +55,7 @@ const sendChatAndGetMessages = async (data) => {
     while (status !== 'completed' && status !== 'failed') {
       const response = await retrieveChat(conversation_id, chat_id);
       status = response.status;
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
     }
     if (status === 'failed') {
       throw new Error('Chat request failed');

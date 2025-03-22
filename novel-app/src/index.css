@@ -66,7 +66,7 @@ button.selected {
   cursor: not-allowed;
 }
 
-@media (prefers-color-scheme: light) {
+/* @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
     background-color: #ffffff;
@@ -79,7 +79,7 @@ button.selected {
   button {
     background-color: #f9f9f9;
   }
-}
+} */
 
 :where(.css-dev-only-do-not-override-tjsggz).ant-spin-nested-loading>div>.ant-spin .ant-spin-text {
   text-shadow: none;
