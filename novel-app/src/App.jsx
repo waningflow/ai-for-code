@@ -68,6 +68,16 @@ function App() {
     setIsLoading(false);
   };
 
+  const getStoryStartPrompt = (roleInfo, storyTitle, storyText) => {
+    const prompt = `小说标题"${storyTitle}"。故事简介"${storyText}"，人物背景介绍：${roleInfo.name}, ${roleInfo.identity}, ${roleInfo.appearance}。`;
+    return prompt;
+  };
+
+  const getStoryImagePrompt = (roleInfo, storyTitle, storyText, ratio) => {
+    const prompt = `根据以下提示生成一张漫画，风格为「黑白动漫」，比例 「4:3」。故事画面介绍"${storyText}", 人物背景介绍：${roleInfo.name}, ${roleInfo.identity}, ${roleInfo.appearance}。`;
+    return prompt;
+  };
+
   const fetchStory = async (prompt) => {
     try {
       const res = await sendChatAndGetMessages({
@@ -76,27 +86,29 @@ function App() {
         additional_messages: [
           {
             role: 'user',
-            content: `请续写故事: ${prompt}`,
+            content: prompt,
             content_type: 'text',
           },
         ],
       });
       const answerData = res.find((item) => item.type === 'answer');
       if (answerData) {
-        const content = answerData.content;
-        const storyRegex = /([\s\S]*?。)[^。]*选择一/;
-        const choiceRegex = /选择一：([^\n]+)\n选择二：([^\n]+)/;
-        const storyMatch = content.match(storyRegex);
-        const choiceMatch = content.match(choiceRegex);
-        const storyText = storyMatch ? storyMatch[1].trim() : '';
-        const option1 = choiceMatch ? choiceMatch[1] : '';
-        const option2 = choiceMatch ? choiceMatch[2] : '';
+        const content = JSON.parse(answerData.content)
+        const storyContent = content['续写内容']
+        const option1Text = content['选择一']
+        const option2Text = content['选择二']
+        const storyImagePrompt = getStoryImagePrompt(
+          selectedTheme.protagonist,
+          selectedTheme.title,
+          storyContent,
+          '「4:3」'
+        );
         const story = {
-          text: storyText,
-          image: await fetchImage(storyText, '「4:3」'),
+          text: storyContent,
+          image: await fetchImage(storyImagePrompt),
           options: [
-            { id: 1, text: option1, nextTheme: null },
-            { id: 2, text: option2, nextTheme: null },
+            { id: 1, text: option1Text },
+            { id: 2, text: option2Text },
           ],
         };
         setStoryList([...storyList, story]);
@@ -159,10 +171,14 @@ function App() {
 
   const handleSelectTheme = async (theme) => {
     setStoryList([]);
-    setRetryCount(0);
     setIsFetchingStory(true);
     try {
-      await fetchStory(selectedTheme.name);
+      const storyStartPrompt = getStoryStartPrompt(
+        theme.protagonist,
+        theme.title,
+        theme.description
+      );
+      await fetchStory(storyStartPrompt);
     } catch (error) {
       console.error('Error fetching story based on selected theme:', error);
       // 可以在这里添加更多的错误处理逻辑，比如显示错误提示给用户
@@ -258,7 +274,7 @@ function App() {
         {selectedTheme && (
           <div>
             <Space style={{ marginBottom: '1rem' }}>
-              {selectedTheme.name}
+              <span style={{ fontWeight: 'bold' }}>{selectedTheme.title}</span>
               <button
                 style={{ fontSize: '12px', padding: '4px 8px' }}
                 onClick={() => {
