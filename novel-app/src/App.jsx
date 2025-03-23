@@ -4,7 +4,7 @@ import viteLogo from '/vite.svg';
 import './App.css';
 import axios from 'axios';
 import { Button, Card, Image, Space } from 'antd';
-import { getMessageList, sendChatAndGetMessages } from './utils/api';
+import { getMessageList, sendChatAndGetMessages, sendStreamChatRequest } from './utils/api';
 import { Spin } from 'antd';
 
 function App() {
@@ -25,7 +25,7 @@ function App() {
   const fetchThemes = async () => {
     setIsLoading(true);
     try {
-      const res = await sendChatAndGetMessages({
+      const res = await sendStreamChatRequest({
         bot_id: '7482756583320666146',
         user_id: userId,
         additional_messages: [
@@ -36,9 +36,10 @@ function App() {
           },
         ],
       });
-      const answerData = res.find((item) => item.type === 'answer');
+      // const answerData = res.find((item) => item.type === 'answer');
+      const answerData = res
       if (answerData) {
-        const themesContent = JSON.parse(answerData.content);
+        const themesContent = JSON.parse(answerData);
         console.log(themesContent);
         const themes = await Promise.all(
           themesContent.map(async (theme) => {
@@ -81,7 +82,7 @@ function App() {
 
   const fetchStory = async (prompt) => {
     try {
-      const res = await sendChatAndGetMessages({
+      const res = await sendStreamChatRequest({
         bot_id: '7483919423419056154',
         user_id: userId + retryCount.toString(),
         additional_messages: [
@@ -92,9 +93,10 @@ function App() {
           },
         ],
       });
-      const answerData = res.find((item) => item.type === 'answer');
+      // const answerData = res.find((item) => item.type === 'answer');
+      const answerData = res
       if (answerData) {
-        const content = JSON.parse(answerData.content)
+        const content = JSON.parse(answerData)
         const storyContent = content['续写内容']
         const option1Text = content['选择一']
         const option2Text = content['选择二']
@@ -122,7 +124,7 @@ function App() {
   // 根据大模型获取图片
   const fetchImage = async (prompt) => {
     try {
-      const res = await sendChatAndGetMessages({
+      const res = await sendStreamChatRequest({
         bot_id: '7483550781116104704',
         user_id: userId + Math.random().toString(36).substring(7),
         additional_messages: [
@@ -133,10 +135,11 @@ function App() {
           },
         ],
       });
-      const answerData = res.find((item) => item.type === 'answer');
+      // const answerData = res.find((item) => item.type === 'answer');
+      const answerData = res
       if (answerData) {
         const urlRegex = /(https?:\/\/[\w\d\._\-\/\?&=]+)/g;
-        const match = answerData.content.match(urlRegex);
+        const match = answerData.match(urlRegex);
         console.log(match);
         if (match) {
           return match[0];
@@ -165,7 +168,7 @@ function App() {
   useEffect(() => {
     console.log('storyList changed, ', storyList);
     setTimeout(() => {
-      document.documentElement.scrollTop =  document.documentElement.scrollHeight - window.innerHeight - 200
+      document.documentElement.scrollTop =  document.documentElement.scrollHeight - window.innerHeight
     }, 500)
   }, [storyList]);
 
@@ -350,15 +353,17 @@ function App() {
           </Space>
         )}
       </div>
-      <Spin spinning={isLoading || isFetchingStory} tip="疯狂画稿中...">
-        <div style={{
-          width: '100%',
-          height: '200px',
-          borderRadius: '20px', // 增加圆角半径
-          marginTop: '20px',
-          marginBottom: '100px',
-        }}></div>
-      </Spin>
+      {(isLoading || isFetchingStory) && (
+        <Spin spinning={true} tip="疯狂画稿中...">
+          <div style={{
+            width: '100%',
+            height: '200px',
+            borderRadius: '20px', // 增加圆角半径
+            marginTop: '20px',
+            marginBottom: '100px',
+          }}></div>
+        </Spin>
+      )}
     </>
   );
 }
