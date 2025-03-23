@@ -84,3 +84,8 @@ button.selected {
 :where(.css-dev-only-do-not-override-tjsggz).ant-spin-nested-loading>div>.ant-spin .ant-spin-text {
   text-shadow: none;
 }
+
+/* html滚动时添加动画 */
+html {
+  scroll-behavior: smooth;
+}

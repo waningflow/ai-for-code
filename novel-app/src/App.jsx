@@ -15,9 +15,10 @@ function App() {
   const [userId, setUserId] = useState('');
   const [retryCount, setRetryCount] = useState(0);
   const [isFetchingStory, setIsFetchingStory] = useState(false);
+  const [isColorful, setIsColorful] = useState(true);
 
   const getCoverImagePrompt = (roleInfo, storyTitle, storyText, ratio) => {
-    const prompt = `根据以下提示生成一张漫画封面，风格为「黑白动漫」，比例 ${ratio}。漫画标题"${storyTitle}"。人物背景介绍：${roleInfo.name}, ${roleInfo.identity}, ${roleInfo.appearance}。故事介绍：${storyText}`;
+    const prompt = `根据以下提示生成一张漫画封面，风格为「${isColorful ? '彩色' : '黑白'}动漫」，比例 ${ratio}。漫画标题"${storyTitle}"。人物背景介绍：${roleInfo.name}, ${roleInfo.identity}, ${roleInfo.appearance}。故事介绍：${storyText}`;
     return prompt;
   };
 
@@ -30,7 +31,7 @@ function App() {
         additional_messages: [
           {
             role: 'user',
-            content: '随机生成3种不同的小说概要，主题风格包括玄幻、科幻、武侠、爱情、校园、职场、悬疑、穿越等，分别起一个小说名（标题中不要包含主题的字眼），用一段简短的文字介绍故事内容（用第二人称表达），并对主角（只能有一人）的姓名、身份、样貌和形象进行介绍。输出成如下的json格式：[{\"title\":\"\",\"description\":\"\",\"protagonist\":{\"name\":\"\",\"identity\":\"\",\"appearance\":\"\",\"image\":\"\"}}]，不要包含其他内容。',
+            content: '随机生成3种不同风格的小说概要，分别起一个小说名（标题中不要包含主题的字眼），用一段简短的文字介绍故事内容（用第二人称表达），并对主角（只能有一人）的姓名、身份、样貌和形象进行介绍。输出成如下的json格式：[{\"title\":\"\",\"description\":\"\",\"protagonist\":{\"name\":\"\",\"identity\":\"\",\"appearance\":\"\",\"image\":\"\"}}]，不要包含其他内容。',
             content_type: 'text',
           },
         ],
@@ -74,7 +75,7 @@ function App() {
   };
 
   const getStoryImagePrompt = (roleInfo, storyTitle, storyText, ratio) => {
-    const prompt = `根据以下提示生成一张漫画，风格为「黑白动漫」，比例 「4:3」。故事画面介绍"${storyText}", 人物背景介绍：${roleInfo.name}, ${roleInfo.identity}, ${roleInfo.appearance}。`;
+    const prompt = `根据以下提示生成一张漫画，风格为「${isColorful ? '彩色' : '黑白'}动漫」，比例 「4:3」。故事画面介绍"${storyText}", 人物背景介绍：${roleInfo.name}, ${roleInfo.identity}, ${roleInfo.appearance}。`;
     return prompt;
   };
 
@@ -163,10 +164,9 @@ function App() {
   // storyList 变化时，自动滚动到底部
   useEffect(() => {
     console.log('storyList changed, ', storyList);
-    const storyListContainer = document.getElementById('storyListContainer');
-    if (storyListContainer) {
-      storyListContainer.scrollTop = storyListContainer.scrollHeight;
-    }
+    setTimeout(() => {
+      document.documentElement.scrollTop =  document.documentElement.scrollHeight - window.innerHeight - 200
+    }, 500)
   }, [storyList]);
 
   const handleSelectTheme = async (theme) => {
@@ -191,6 +191,9 @@ function App() {
     setIsFetchingStory(true);
     storyList[storyIndex].selectedOption = option;
     setStoryList([...storyList]);
+    setTimeout(() => {
+      document.documentElement.scrollTop =  document.documentElement.scrollHeight - window.innerHeight
+    }, 500)
     try {
       const res = await fetchStory(option.text);
     } catch (error) {
@@ -215,7 +218,29 @@ function App() {
 
   return (
     <>
-
+      <div style={{ backgroundImage: `url(./bg.jpg)`, backgroundPosition: 'center', backgroundSize: '100% 100%', position: 'fixed', left: 0, top: 0, right: 0, bottom: 0, zIndex: -1 }}></div>
+      {
+        selectedTheme && <Space style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '-28px' }}>
+          <button
+            style={{ fontSize: '12px', padding: '4px 8px' }}
+            onClick={() => {
+              // 这里添加回到首页的逻辑，例如跳转到首页路由
+              window.location.href = '/';
+            }}
+          >
+            回到首页
+          </button>
+          <button
+            style={{ fontSize: '12px', padding: '4px 8px' }}
+            onClick={() => {
+              setStoryList([]);
+              setRetryCount(retryCount + 1);
+            }}
+          >
+            点此重生
+          </button>
+        </Space>
+      }
       <div style={{ width: '100%', height: '100%' }} id="storyListContainer">
         <h1>“短漫”的诞生</h1>
         {themes?.length > 0 && !selectedTheme && (
@@ -274,16 +299,7 @@ function App() {
         {selectedTheme && (
           <div>
             <Space style={{ marginBottom: '1rem' }}>
-              <span style={{ fontWeight: 'bold' }}>{selectedTheme.title}</span>
-              <button
-                style={{ fontSize: '12px', padding: '4px 8px' }}
-                onClick={() => {
-                  setStoryList([]);
-                  setRetryCount(retryCount + 1);
-                }}
-              >
-                点此重生
-              </button>
+              <span style={{ fontWeight: 'bold', fontSize: '24px' }}>{selectedTheme.title}</span>
             </Space>
           </div>
         )}
@@ -337,9 +353,10 @@ function App() {
       <Spin spinning={isLoading || isFetchingStory} tip="疯狂画稿中...">
         <div style={{
           width: '100%',
-          height: '100px',
-          borderRadius: '10px',
-          marginTop: '20px'
+          height: '200px',
+          borderRadius: '20px', // 增加圆角半径
+          marginTop: '20px',
+          marginBottom: '100px',
         }}></div>
       </Spin>
     </>
