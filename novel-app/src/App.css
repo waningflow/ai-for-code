@@ -76,3 +76,15 @@ p {
   transform: scale(1.05);
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
 }
+
+.bg {
+  background-image: url(./assets/bg.jpg);
+  background-position: center;
+  background-size: 100% 100%;
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+}

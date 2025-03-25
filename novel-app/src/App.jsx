@@ -168,7 +168,7 @@ function App() {
   useEffect(() => {
     console.log('storyList changed, ', storyList);
     setTimeout(() => {
-      document.documentElement.scrollTop =  document.documentElement.scrollHeight - window.innerHeight
+      document.documentElement.scrollTop = document.documentElement.scrollHeight - window.innerHeight
     }, 500)
   }, [storyList]);
 
@@ -195,7 +195,7 @@ function App() {
     storyList[storyIndex].selectedOption = option;
     setStoryList([...storyList]);
     setTimeout(() => {
-      document.documentElement.scrollTop =  document.documentElement.scrollHeight - window.innerHeight
+      document.documentElement.scrollTop = document.documentElement.scrollHeight - window.innerHeight
     }, 500)
     try {
       const res = await fetchStory(option.text);
@@ -221,7 +221,7 @@ function App() {
 
   return (
     <>
-      <div style={{ backgroundImage: `url(./bg.jpg)`, backgroundPosition: 'center', backgroundSize: '100% 100%', position: 'fixed', left: 0, top: 0, right: 0, bottom: 0, zIndex: -1 }}></div>
+      <div className='bg'></div>
       {
         selectedTheme && <Space style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '-28px' }}>
           <button
@@ -245,10 +245,10 @@ function App() {
         </Space>
       }
       <div style={{ width: '100%', height: '100%' }} id="storyListContainer">
-        <h1>“短漫”的诞生</h1>
+        <h1>短漫的诞生</h1>
         {themes?.length > 0 && !selectedTheme && (
           <Space style={{ marginBottom: '1rem' }}>
-            选择漫画主题，开启你的专属“短漫”{' '}
+            选择漫画主题，开启你的专属短漫{' '}
             <button
               style={{ fontSize: '12px', padding: '4px 8px' }}
               onClick={fetchThemes}
@@ -310,7 +310,7 @@ function App() {
           <Space style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: '10px', width: "100%" }} >
             {storyList.map((story, storyIndex) => {
               if (storyIndex >= 1 && (!story.text || !story.image || !story.options.length)) {
-                return <button style={{ fontSize: '12px', padding: '4px 8px', display: 'block', margin: '0 auto' }} onClick={() => handleRefetchStory(storyIndex)}>重试</button>
+                return <button key={storyIndex} style={{ fontSize: '12px', padding: '4px 8px', display: 'block', margin: '0 auto' }} onClick={() => handleRefetchStory(storyIndex)}>重试</button>
               }
               return (
                 <div key={storyIndex}>
