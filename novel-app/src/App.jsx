@@ -227,8 +227,7 @@ function App() {
           <button
             style={{ fontSize: '12px', padding: '4px 8px' }}
             onClick={() => {
-              // 这里添加回到首页的逻辑，例如跳转到首页路由
-              window.location.href = '/';
+              window.location.reload();
             }}
           >
             回到首页
@@ -251,7 +250,10 @@ function App() {
             选择漫画主题，开启你的专属短漫{' '}
             <button
               style={{ fontSize: '12px', padding: '4px 8px' }}
-              onClick={fetchThemes}
+              onClick={() => {
+                setThemes([]);
+                fetchThemes();
+              }}
             >
               换一批
             </button>
